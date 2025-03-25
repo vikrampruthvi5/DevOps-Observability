@@ -21,7 +21,7 @@ sudo cp -p /tmp/config/promtail-config.yml ./promtail-config.yaml
 sudo cp -p /tmp/config/loki.yaml ./loki.yaml
 sudo cp -p /tmp/config/grafana.ini ./grafana.ini
 sudo cp -p /tmp/config/dashboard.yaml ./dashboard.yaml
-sudo cp -p /tmp/Synthetic_log_dashboard.json ./Synthetic_log_dashboard.json
+sudo cp -p /tmp/config/Synthetic_log_dashboard.json ./Synthetic_log_dashboard.json
 
 # # Create docker containers for Loki, Promtail and Grafana
 sudo docker run --name loki -d -v $(pwd):/mnt/config -p 3100:3100 grafana/loki:3.4.1 -config.file=/mnt/config/loki-config.yaml
