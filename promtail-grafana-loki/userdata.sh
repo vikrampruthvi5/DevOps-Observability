@@ -152,6 +152,23 @@ sudo systemctl restart loki
 sudo systemctl enable promtail
 sudo systemctl restart promtail
 
+# Configure grafna dashboard from json file
+sudo mkdir -p /etc/grafana/provisioning/dashboards
+sudo cp -p /tmp/Synthetic_log_dashboard.json /etc/grafana/provisioning/dashboards/Synthetic_log_dashboard.json
+
+sudo tee /etc/grafana/provisioning/dashboards/dashboard.yaml <<EOF
+apiVersion: 1
+providers:
+  - name: 'Synthetic Logs'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+EOF
+
 # Enable and start Grafana service
 sudo systemctl enable grafana-server
 sudo systemctl restart grafana-server

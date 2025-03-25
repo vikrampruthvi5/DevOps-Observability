@@ -1,5 +1,5 @@
 resource "aws_instance" "instance" {
-ami             = "ami-0c02fb55956c7d316"
+  ami             = "ami-0c02fb55956c7d316"
   instance_type   = "t2.micro"
   security_groups = [aws_security_group.instance_sg.name]
   key_name        = aws_key_pair.instance_kp.key_name
@@ -14,6 +14,11 @@ ami             = "ami-0c02fb55956c7d316"
   provisioner "file" {
     source      = "userdata.sh"
     destination = "/tmp/userdata.sh"
+  }
+
+  provisioner "file" {
+    source      = "Synthetic_log_dashboard.json"
+    destination = "/tmp/Synthetic_log_dashboard.json"
   }
 
   provisioner "remote-exec" {
