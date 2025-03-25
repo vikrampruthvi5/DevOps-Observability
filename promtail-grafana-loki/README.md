@@ -42,6 +42,79 @@ Terraform is a powerful Infrastructure as Code (IaC) tool that simplifies the pr
 |output.tf|Defines the outputs of the Terraform configuration, allowing users to extract and display key information about the provisioned resources. This file is essential for retrieving details such as instance IDs, public IP addresses, or other resource attributes, which can be used for further automation or integration with other tools.|
 |userdata.sh|Contains the user data script that is executed during the initialization of an EC2 instance. This script automates the configuration of the instance by installing necessary software, setting up services, or performing other initialization tasks. For example, it can be used to install Promtail, configure log collection, and ensure that the instance is ready to forward logs to Loki. The `userdata.sh` file is crucial for achieving a consistent and automated setup of EC2 instances.|
 
+# Setting up and Running the project
+
+## Setup Environment variables
+```bash
+# Set AWS environment variables for Terraform
+export AWS_ACCESS_KEY_ID=<your-access-key-id>
+export AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+export AWS_DEFAULT_REGION=<your-default-region>
+```
+```bash
+# Set AWS environment variables for Terraform
+set AWS_ACCESS_KEY_ID=<your-access-key-id>
+set AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+set AWS_DEFAULT_REGION=<your-default-region>
+```
+
+## Follow steps to provision and deploy
+```bash
+# Clone the repository
+git clone <REPO URL>
+
+# Navigate to the project directory
+cd promtail-grafana-loki
+
+# Initialize Terraform
+terraform init
+
+# Apply the Terraform configuration
+terraform apply -auto-approve
+
+# SSH into the provisioned EC2 instance
+# You can get the Public IP from terraform output
+ssh -i /path/to/your-key.pem ec2-user@<EC2_PUBLIC_IP>
+
+# Verify the setup
+# Check if Loki, Promtail, and Grafana services are running
+sudo systemctl status loki
+sudo systemctl status promtail
+sudo systemctl status grafana-server
+
+# Access Grafana in your browser
+# Navigate to http://<EC2_PUBLIC_IP>:3000
+# Login with the default credentials (admin/grafana_password)
+```
+
+```bash
+# Clone the repository
+git clone <REPO URL>
+
+# Navigate to the project directory
+cd promtail-grafana-loki
+
+# Initialize Terraform
+terraform init
+
+# Apply the Terraform configuration
+terraform apply -auto-approve
+
+# SSH into the provisioned EC2 instance
+# You can get the Public IP from terraform output
+ssh -i /path/to/your-key.pem ec2-user@<EC2_PUBLIC_IP>
+
+# Verify the setup
+# Check if Loki, Promtail, and Grafana services are running
+sudo systemctl status loki
+sudo systemctl status promtail
+sudo systemctl status grafana-server
+
+# Access Grafana in your browser
+# Navigate to http://<EC2_PUBLIC_IP>:3000
+# Login with the default credentials (admin/grafana_password)
+```
+
 ## Userdata.sh File
 
 The `userdata.sh` file is a script that automates the setup of the monitoring stack on an EC2 instance. Below is a breakdown of its functionality:
@@ -281,79 +354,6 @@ The `userdata.sh` file is a script that automates the setup of the monitoring st
     ```
     nohup python3 /home/ec2-user/synthetic.py > /var/log/synthetic.log 2>&1 &
     ```
-
-# Setting up and Running the project
-
-## Setup Environment variables
-```bash
-# Set AWS environment variables for Terraform
-export AWS_ACCESS_KEY_ID=<your-access-key-id>
-export AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
-export AWS_DEFAULT_REGION=<your-default-region>
-```
-```bash
-# Set AWS environment variables for Terraform
-set AWS_ACCESS_KEY_ID=<your-access-key-id>
-set AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
-set AWS_DEFAULT_REGION=<your-default-region>
-```
-
-## Follow steps to provision and deploy
-```bash
-# Clone the repository
-git clone <REPO URL>
-
-# Navigate to the project directory
-cd promtail-grafana-loki
-
-# Initialize Terraform
-terraform init
-
-# Apply the Terraform configuration
-terraform apply -auto-approve
-
-# SSH into the provisioned EC2 instance
-# You can get the Public IP from terraform output
-ssh -i /path/to/your-key.pem ec2-user@<EC2_PUBLIC_IP>
-
-# Verify the setup
-# Check if Loki, Promtail, and Grafana services are running
-sudo systemctl status loki
-sudo systemctl status promtail
-sudo systemctl status grafana-server
-
-# Access Grafana in your browser
-# Navigate to http://<EC2_PUBLIC_IP>:3000
-# Login with the default credentials (admin/grafana_password)
-```
-
-```bash
-# Clone the repository
-git clone <REPO URL>
-
-# Navigate to the project directory
-cd promtail-grafana-loki
-
-# Initialize Terraform
-terraform init
-
-# Apply the Terraform configuration
-terraform apply -auto-approve
-
-# SSH into the provisioned EC2 instance
-# You can get the Public IP from terraform output
-ssh -i /path/to/your-key.pem ec2-user@<EC2_PUBLIC_IP>
-
-# Verify the setup
-# Check if Loki, Promtail, and Grafana services are running
-sudo systemctl status loki
-sudo systemctl status promtail
-sudo systemctl status grafana-server
-
-# Access Grafana in your browser
-# Navigate to http://<EC2_PUBLIC_IP>:3000
-# Login with the default credentials (admin/grafana_password)
-```
 
 # Screenshots
 ![Infrastructure Diagram](./Screens/1.png)
