@@ -304,7 +304,7 @@ set AWS_DEFAULT_REGION=<your-default-region>
 git clone <REPO URL>
 
 # Navigate to the project directory
-cd UseCase1_1
+cd promtail-grafana-loki
 
 # Initialize Terraform
 terraform init
@@ -332,7 +332,7 @@ sudo systemctl status grafana-server
 git clone <REPO URL>
 
 # Navigate to the project directory
-cd UseCase1_1
+cd promtail-grafana-loki
 
 # Initialize Terraform
 terraform init
