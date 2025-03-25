@@ -17,8 +17,19 @@ resource "aws_instance" "instance" {
   }
 
   provisioner "file" {
-    source      = "Synthetic_log_dashboard.json"
-    destination = "/tmp/Synthetic_log_dashboard.json"
+    source      = "./config"
+    destination = "/tmp"
+    
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sed -i 's/<HOST>/${self.public_ip}/g' /tmp/config/loki-config.yml",
+      "sed -i 's/<HOST>/${self.public_ip}/g' /tmp/config/promtail-config.yml",
+      "sed -i 's/<HOST>/${self.public_ip}/g' /tmp/config/grafana.ini",
+      "sed -i 's/<HOST>/${self.public_ip}/g' /tmp/config/loki.yaml"
+    ]
+    
   }
 
   provisioner "remote-exec" {

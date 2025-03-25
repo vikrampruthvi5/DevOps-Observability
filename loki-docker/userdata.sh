@@ -5,201 +5,113 @@ sudo yum update -y
 # Install dependencies
 sudo yum install -y wget
 
-# Add Grafana GPG key and repository
-sudo rpm --import https://packages.grafana.com/gpg.key
-echo "[grafana]
-name=Grafana OSS
-baseurl=https://packages.grafana.com/oss/rpm
-repo_gpgcheck=1
-enabled=1
-gpgcheck=1
-gpgkey=https://packages.grafana.com/gpg.key" | sudo tee /etc/yum.repos.d/grafana.repo
+# Install Docker
+sudo amazon-linux-extras install docker -y
+sudo systemctl enable docker
+sudo systemctl start docker
 
 # Update package lists again
 sudo yum update -y
 
-# Install Grafana
-sudo yum install -y grafana
+# Copy Loki and Promtail configuration files
+mkdir loki
+cd loki
+sudo cp -p /tmp/config/loki-config.yml ./loki-config.yaml
+sudo cp -p /tmp/config/promtail-config.yml ./promtail-config.yaml
+sudo cp -p /tmp/config/loki.yaml ./loki.yaml
+sudo cp -p /tmp/config/grafana.ini ./grafana.ini
+sudo cp -p /tmp/config/dashboard.yaml ./dashboard.yaml
+sudo cp -p /tmp/Synthetic_log_dashboard.json ./Synthetic_log_dashboard.json
 
-# Install Loki and Promtail
-sudo yum install loki -y promtail
+# # Create docker containers for Loki, Promtail and Grafana
+sudo docker run --name loki -d -v $(pwd):/mnt/config -p 3100:3100 grafana/loki:3.4.1 -config.file=/mnt/config/loki-config.yaml
+sudo docker run --name promtail -d -v $(pwd):/mnt/config -v /var/log:/var/log --link loki grafana/promtail:3.4.1 -config.file=/mnt/config/promtail-config.yaml
+sudo docker create --name grafana -p 3000:3000 grafana/grafana
 
-# Configure Loki
-sudo tee /etc/loki/config.yml <<EOF
-auth_enabled: false
+sudo docker cp $(pwd)/grafana.ini grafana:/etc/grafana/grafana.ini
+sudo docker cp $(pwd)/dashboard.yaml grafana:/etc/grafana/provisioning/dashboards/dashboard.yaml
+sudo docker cp $(pwd)/Synthetic_log_dashboard.json grafana:/etc/grafana/provisioning/dashboards/Synthetic_log_dashboard.json
+sudo docker cp $(pwd)/loki.yaml grafana:/etc/grafana/provisioning/datasources/loki.yaml
 
-server:
-  http_listen_port: 3100
-  grpc_listen_port: 9096
-  log_level: debug
-  grpc_server_max_concurrent_streams: 1000
+sudo docker start grafana
 
-common:
-  instance_addr: 127.0.0.1
-  path_prefix: /tmp/loki
-  storage:
-    filesystem:
-      chunks_directory: /tmp/loki/chunks
-      rules_directory: /tmp/loki/rules
-  replication_factor: 1
-  ring:
-    kvstore:
-      store: inmemory
 
-query_range:
-  results_cache:
-    cache:
-      embedded_cache:
-        enabled: true
-        max_size_mb: 100
+# # Configure Grafana
+# sudo tee /etc/grafana/grafana.ini <<EOF
+# [server]
+# http_port = 3000
+# root_url = http://localhost:3000
+# [paths]
+# data = /var/lib/grafana
+# logs = /var/log/grafana
+# [log]
+# mode = file
+# [analytics]
+# check_for_updates = true
+# [security]
+# admin_user = grafana
+# admin_password = grafana_password
+# [users]
+# allow_sign_up = false
+# EOF
 
-limits_config:
-  metric_aggregation_enabled: true
+# # Configure Grafana to use Loki
+# sudo tee -a /etc/grafana/provisioning/datasources/loki.yaml <<EOF
+# apiVersion: 1
+# datasources:
+#   - name: Loki
+#     type: loki
+#     access: proxy
+#     url: http://localhost:3100
+#     jsonData:
+#       maxLines: 1000
+#       minTimeRange: 1m
+# EOF
 
-schema_config:
-  configs:
-    - from: 2020-10-24
-      store: tsdb
-      object_store: filesystem
-      schema: v13
-      index:
-        prefix: index_
-        period: 24h
+# sudo tee /etc/grafana/provisioning/dashboards/dashboard.yaml <<EOF
+# apiVersion: 1
+# providers:
+#   - name: 'Synthetic Logs'
+#     orgId: 1
+#     folder: ''
+#     type: file
+#     disableDeletion: false
+#     editable: true
+#     options:
+#       path: /etc/grafana/provisioning/dashboards
+# EOF
 
-pattern_ingester:
-  enabled: true
-  metric_aggregation:
-    loki_address: localhost:3100
+# # Enable and start Grafana service
+# sudo systemctl enable grafana-server
+# sudo systemctl restart grafana-server
 
-ruler:
-  alertmanager_url: http://localhost:9093
+# # Install python3 and build a flask application that logs synthetic logs to log file infrequently
+# sudo yum install python3 -y
+# sudo pip3 install flask
 
-frontend:
-  encoding: protobuf
+# sudo tee /var/log/synthetic.log <<EOF
+# EOF
 
-# By default, Loki will send anonymous, but uniquely-identifiable usage and configuration
-# analytics to Grafana Labs. These statistics are sent to https://stats.grafana.org/
-#
-# Statistics help us better understand how Loki is used, and they show us performance
-# levels for most users. This helps us prioritize features and documentation.
-# For more information on what's sent, look at
-# https://github.com/grafana/loki/blob/main/pkg/analytics/stats.go
-# Refer to the buildReport method to see what goes into a report.
-#
-# If you would like to disable reporting, uncomment the following lines:
-#analytics:
-#  reporting_enabled: false
-EOF
+# sudo chown ec2-user:ec2-user /var/log/synthetic.log
 
-# Configure Promtail
-sudo tee /etc/promtail/config.yml <<EOF
-server:
-  http_listen_port: 9080
-positions:
-    filename: /tmp/positions.yaml
-clients:
-    - url: http://localhost:3100/loki/api/v1/push
-scrape_configs:
-    - job_name: synthetic_logs
-      static_configs:
-        - targets:
-            - localhost
-          labels:
-            job: synthetic_logs
-            __path__: /var/log/synthetic.log
-EOF
+# tee /home/ec2-user/synthetic.py <<EOF
+# from flask import Flask
+# import logging
+# import time
 
-# Configure Grafana
-sudo tee /etc/grafana/grafana.ini <<EOF
-[server]
-http_port = 3000
-root_url = http://localhost:3000
-[paths]
-data = /var/lib/grafana
-logs = /var/log/grafana
-[log]
-mode = file
-[analytics]
-check_for_updates = true
-[security]
-admin_user = grafana
-admin_password = grafana_password
-[users]
-allow_sign_up = false
-EOF
+# app = Flask(__name__)
 
-# Configure Grafana to use Loki
-sudo tee -a /etc/grafana/provisioning/datasources/loki.yaml <<EOF
-apiVersion: 1
-datasources:
-  - name: Loki
-    type: loki
-    access: proxy
-    url: http://localhost:3100
-    jsonData:
-      maxLines: 1000
-      minTimeRange: 1m
-EOF
+# @app.route('/')
+# def hello_world():
+#     app.logger.info('Hello, World!')
+#     return 'Hello, World!'
 
-# Change the user of promtail to root
-sudo sed -i 's/User=promtail/User=root/g' /etc/systemd/system/promtail.service
+# if __name__ == '__main__':
+#     logging.basicConfig(filename='/var/log/synthetic.log', level=logging.INFO)
+#     app.run(host='0.0.0.0', port=5000)
+#     while True:
+#         time.sleep(60)
+#         app.logger.info('Hello, World!')
+# EOF
 
-# Enable and start Loki service
-sudo systemctl enable loki
-sudo systemctl restart loki
-
-# Enable and start Promtail service
-sudo systemctl enable promtail
-sudo systemctl restart promtail
-
-# Configure grafna dashboard from json file
-sudo mkdir -p /etc/grafana/provisioning/dashboards
-sudo cp -p /tmp/Synthetic_log_dashboard.json /etc/grafana/provisioning/dashboards/Synthetic_log_dashboard.json
-
-sudo tee /etc/grafana/provisioning/dashboards/dashboard.yaml <<EOF
-apiVersion: 1
-providers:
-  - name: 'Synthetic Logs'
-    orgId: 1
-    folder: ''
-    type: file
-    disableDeletion: false
-    editable: true
-    options:
-      path: /etc/grafana/provisioning/dashboards
-EOF
-
-# Enable and start Grafana service
-sudo systemctl enable grafana-server
-sudo systemctl restart grafana-server
-
-# Install python3 and build a flask application that logs synthetic logs to log file infrequently
-sudo yum install python3 -y
-sudo pip3 install flask
-
-sudo tee /var/log/synthetic.log <<EOF
-EOF
-
-sudo chown ec2-user:ec2-user /var/log/synthetic.log
-
-tee /home/ec2-user/synthetic.py <<EOF
-from flask import Flask
-import logging
-import time
-
-app = Flask(__name__)
-
-@app.route('/')
-def hello_world():
-    app.logger.info('Hello, World!')
-    return 'Hello, World!'
-
-if __name__ == '__main__':
-    logging.basicConfig(filename='/var/log/synthetic.log', level=logging.INFO)
-    app.run(host='0.0.0.0', port=5000)
-    while True:
-        time.sleep(60)
-        app.logger.info('Hello, World!')
-EOF
-
-nohup python3 /home/ec2-user/synthetic.py > /var/log/synthetic.log 2>&1 &
+# nohup python3 /home/ec2-user/synthetic.py > /var/log/synthetic.log 2>&1 &
