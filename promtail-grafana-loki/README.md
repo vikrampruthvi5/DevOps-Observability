@@ -357,12 +357,21 @@ sudo systemctl status grafana-server
 
 # Screenshots
 ![Infrastructure Diagram](./Screens/1.png)
+
 ![Infrastructure Diagram](./Screens/2.png)
+
 ![Infrastructure Diagram](./Screens/3.png)
+
 ![Infrastructure Diagram](./Screens/4.png)
+
 ![Infrastructure Diagram](./Screens/5.png)
+
 ![Infrastructure Diagram](./Screens/6.png)
+
 ![Infrastructure Diagram](./Screens/7.png)
+
 ![Infrastructure Diagram](./Screens/8.png)
+
 ![Infrastructure Diagram](./Screens/9.png)
+
 ![Infrastructure Diagram](./Screens/10.png)
